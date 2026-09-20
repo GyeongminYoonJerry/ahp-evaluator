@@ -1,905 +1,207 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>철도종사자 PSF AHP 평가</title>
-<style>
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
-                 "Malgun Gothic", "맑은 고딕", sans-serif;
-    background: #f4f6f8;
-    color: #222;
-    line-height: 1.5;
-  }
-  .container {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 16px;
-    padding-bottom: 96px;
-  }
-  header {
-    background: #525c68;
-    color: #fff;
-    padding: 16px;
-    text-align: center;
-    margin: -16px -16px 16px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  header h1 { margin: 0; font-size: 18px; }
-  header .progress {
-    margin-top: 8px;
-    font-size: 13px;
-    opacity: 0.9;
-  }
-  .progress-bar {
-    height: 4px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 2px;
-    margin-top: 8px;
-    overflow: hidden;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    background: #87ceeb;
-    transition: width 0.3s;
-  }
-
-  /* 시작 화면 */
-  .intro h2 { font-size: 16px; margin-top: 24px; color: #525c68; }
-  .intro p { font-size: 14px; }
-  .intro ul { font-size: 14px; padding-left: 20px; }
-  .intro li { margin-bottom: 4px; }
-  .intro .note {
-    background: #fffbea;
-    border-left: 4px solid #facc15;
-    padding: 10px 12px;
-    margin: 16px 0;
-    font-size: 13px;
-    border-radius: 4px;
-  }
-
-  /* 입력 폼 */
-  .form-group { margin-bottom: 16px; }
-  .form-group label {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: #333;
-  }
-  .form-group input {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    background: #fff;
-  }
-  .form-group input:focus {
-    outline: none;
-    border-color: #525c68;
-    box-shadow: 0 0 0 3px rgba(82,92,104,0.15);
-  }
-
-  /* 평가 페이지 */
-  .page-title {
-    font-size: 15px;
-    color: #525c68;
-    margin: 8px 0 4px;
-    font-weight: 600;
-  }
-  .page-subtitle {
-    font-size: 13px;
-    color: #6b7280;
-    margin-bottom: 16px;
-  }
-
-  .compare-card {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    padding: 14px;
-    margin-bottom: 12px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-  }
-  .compare-card .pair-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 10px;
-    font-size: 13px;
-    color: #6b7280;
-  }
-  .compare-card .pair-num {
-    flex: 0 0 auto;
-    background: #525c68;
-    color: #fff;
-    border-radius: 12px;
-    padding: 2px 10px;
-    font-size: 11px;
-    font-weight: 500;
-    margin-top: 1px;
-  }
-  .compare-card .pair-question {
-    flex: 1 1 auto;
-    line-height: 1.5;
-    color: #334155;
-    font-size: 13px;
-  }
-  .compare-card .pair-question .ctx {
-    color: #525c68;
-    font-weight: 500;
-  }
-  .compare-card .pair-question .item {
-    color: #1e293b;
-    font-weight: 500;
-  }
-  .pair-labels {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .pair-labels > div {
-    background: #f1f5f9;
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    text-align: center;
-    color: #1e293b;
-  }
-  .pair-labels .lhs { border-left: 4px solid #3b82f6; }
-  .pair-labels .rhs { border-right: 4px solid #ef4444; }
-
-  .scale-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    justify-content: center;
-    padding: 6px 0;
-  }
-  .scale-btn {
-    flex: 1 1 auto;
-    min-width: 30px;
-    max-width: 40px;
-    height: 38px;
-    border: 1px solid #cbd5e1;
-    background: #fff;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.15s;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-  .scale-btn:active { transform: scale(0.95); }
-  /* 색상 그라데이션 — 왼쪽(파랑) 8단계 + 오른쪽(빨강) 8단계 */
-  /* 표시 9(끝) = 가장 진함, 표시 2(가운데 옆) = 가장 옅음 */
-  .scale-btn.lvl-l8 { background: #3b82f6;                  color: #fff;     border-color: #2563eb; }
-  .scale-btn.lvl-l7 { background: rgba(59,130,246,0.85);    color: #fff;     border-color: rgba(59,130,246,0.6); }
-  .scale-btn.lvl-l6 { background: rgba(59,130,246,0.70);    color: #fff;     border-color: rgba(59,130,246,0.5); }
-  .scale-btn.lvl-l5 { background: rgba(59,130,246,0.55);    color: #fff;     border-color: rgba(59,130,246,0.4); }
-  .scale-btn.lvl-l4 { background: rgba(59,130,246,0.40);    color: #1e3a8a;  border-color: rgba(59,130,246,0.3); }
-  .scale-btn.lvl-l3 { background: rgba(59,130,246,0.28);    color: #1e3a8a;  border-color: rgba(59,130,246,0.25); }
-  .scale-btn.lvl-l2 { background: rgba(59,130,246,0.18);    color: #1e3a8a;  border-color: rgba(59,130,246,0.2); }
-  .scale-btn.lvl-l1 { background: rgba(59,130,246,0.10);    color: #1e3a8a;  border-color: rgba(59,130,246,0.15); }
-  .scale-btn.lvl-r1 { background: rgba(239,68,68,0.10);     color: #7f1d1d;  border-color: rgba(239,68,68,0.15); }
-  .scale-btn.lvl-r2 { background: rgba(239,68,68,0.18);     color: #7f1d1d;  border-color: rgba(239,68,68,0.2); }
-  .scale-btn.lvl-r3 { background: rgba(239,68,68,0.28);     color: #7f1d1d;  border-color: rgba(239,68,68,0.25); }
-  .scale-btn.lvl-r4 { background: rgba(239,68,68,0.40);     color: #7f1d1d;  border-color: rgba(239,68,68,0.3); }
-  .scale-btn.lvl-r5 { background: rgba(239,68,68,0.55);     color: #fff;     border-color: rgba(239,68,68,0.4); }
-  .scale-btn.lvl-r6 { background: rgba(239,68,68,0.70);     color: #fff;     border-color: rgba(239,68,68,0.5); }
-  .scale-btn.lvl-r7 { background: rgba(239,68,68,0.85);     color: #fff;     border-color: rgba(239,68,68,0.6); }
-  .scale-btn.lvl-r8 { background: #ef4444;                  color: #fff;     border-color: #dc2626; }
-  /* 선택 상태 — lvl 색상보다 우선되도록 specificity 동일 + 후속 정의 */
-  .scale-btn.selected {
-    background: #525c68;
-    color: #fff;
-    border-color: #525c68;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-  }
-  .scale-btn.equal { background: #fef3c7; border-color: #fbbf24; color: #92400e; }
-  .scale-btn.equal.selected { background: #f59e0b; color: #fff; border-color: #f59e0b; }
-  .scale-legend {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: #6b7280;
-    margin-top: 8px;
-    padding: 0 4px;
-  }
-
-  /* 하단 네비게이션 */
-  .nav-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-top: 1px solid #e5e7eb;
-    padding: 10px 16px;
-    display: flex;
-    gap: 8px;
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.05);
-    z-index: 100;
-  }
-  .nav-bar button {
-    flex: 1;
-    padding: 14px;
-    font-size: 15px;
-    font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    -webkit-appearance: none;
-    appearance: none;
-  }
-  .nav-bar .btn-prev {
-    background: #e5e7eb;
-    color: #475569;
-  }
-  .nav-bar .btn-next {
-    background: #525c68;
-    color: #fff;
-  }
-  .nav-bar .btn-next:disabled {
-    background: #cbd5e1;
-    cursor: not-allowed;
-  }
-  /* 미완료 상태 — 클릭은 가능하지만 시각적으로 회색 */
-  .nav-bar .btn-next.incomplete,
-  .nav-bar .btn-submit.incomplete {
-    background: #cbd5e1;
-    color: #64748b;
-  }
-  .nav-bar .btn-submit {
-    background: #16a34a;
-    color: #fff;
-  }
-
-  /* 미응답 카드 강조 (스크롤 이동 후 깜빡임) */
-  .compare-card.highlight-missing {
-    border-color: #ef4444;
-    box-shadow: 0 0 0 3px rgba(239,68,68,0.25);
-    animation: pulse-missing 0.5s ease-in-out 3;
-  }
-  @keyframes pulse-missing {
-    0%, 100% { transform: scale(1); }
-    50%      { transform: scale(1.015); }
-  }
-
-  /* 완료 화면 */
-  .done {
-    text-align: center;
-    padding: 60px 20px;
-  }
-  .done .check {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 20px;
-    background: #16a34a;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 40px;
-  }
-  .done h2 { color: #16a34a; margin-bottom: 12px; }
-  .done p { color: #475569; font-size: 14px; }
-
-  /* 로딩 화면 */
-  .loading {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(255,255,255,0.95);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-  }
-  .loading.active { display: flex; }
-  .loading .spinner {
-    width: 50px;
-    height: 50px;
-    border: 4px solid #e5e7eb;
-    border-top-color: #525c68;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .hidden { display: none !important; }
-
-  @media (max-width: 380px) {
-    header h1 { font-size: 16px; }
-    .scale-btn { min-width: 26px; height: 36px; font-size: 12px; }
-    .pair-labels > div { font-size: 13px; padding: 8px; }
-  }
-</style>
-</head>
-<body>
-
-<header>
-  <h1 id="header-title">철도종사자 PSF AHP 평가</h1>
-  <div class="progress" id="progress-text">시작 화면</div>
-  <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width: 0%"></div></div>
-</header>
-
-<div class="container" id="app">
-  <!-- 시작 화면 -->
-  <section id="screen-intro">
-    <div class="intro">
-      <p>철도종사자의 인적수행 영향인자(PSF)에 대한 <strong>쌍대비교(AHP) 평가</strong>입니다.</p>
-
-      <h2>응답 방법</h2>
-      <ul>
-        <li>두 항목을 비교하여 <strong>어느 쪽이 얼마나 더 중요한지</strong> 선택합니다.</li>
-        <li>가운데(<strong>=</strong>)는 두 항목이 동등하게 중요함을 의미합니다.</li>
-        <li>좌/우로 갈수록 그 쪽이 더 중요함을 의미하며, 끝(<strong>9</strong>)은 절대적으로 중요함을 의미합니다.</li>
-      </ul>
-
-      <h2>응답 시간 안내</h2>
-      <div class="note">
-        총 <strong>9개 페이지</strong>, 약 <strong>206개</strong>의 쌍대비교를 진행합니다.
-        <br>예상 소요시간: 약 <strong>25~40분</strong>
-        <br>중간에 종료하시면 진행 상황은 저장되지 않습니다.
-      </div>
-
-      <h2>응답자 정보</h2>
-      <div class="form-group">
-        <label for="name">이름 <span style="color:#ef4444">*</span></label>
-        <input type="text" id="name" placeholder="홍길동" autocomplete="name">
-      </div>
-      <div class="form-group">
-        <label for="affiliation">소속 <span style="color:#ef4444">*</span></label>
-        <input type="text" id="affiliation" placeholder="○○○ 기관/회사명" autocomplete="organization">
-      </div>
-      <div class="form-group">
-        <label for="position">직책/직무 <span style="color:#ef4444">*</span></label>
-        <input type="text" id="position" placeholder="예: 기관사, 관제사, 안전관리자 등">
-      </div>
-    </div>
-  </section>
-
-  <!-- 평가 페이지 (동적 생성) -->
-  <section id="screen-eval" class="hidden">
-    <div class="page-title" id="eval-title"></div>
-    <div class="page-subtitle" id="eval-subtitle"></div>
-    <div id="eval-pairs"></div>
-  </section>
-
-  <!-- 완료 화면 -->
-  <section id="screen-done" class="hidden">
-    <div class="done">
-      <div class="check">✓</div>
-      <h2>평가가 완료되었습니다</h2>
-      <p>응답해주셔서 감사합니다.<br>결과는 연구진에게 자동으로 전송되었습니다.</p>
-      <p style="margin-top:24px; font-size:12px; color:#9ca3af;">
-        이 페이지는 닫으셔도 됩니다.
-      </p>
-    </div>
-  </section>
-</div>
-
-<!-- 하단 네비 -->
-<div class="nav-bar" id="nav-bar">
-  <button class="btn-prev hidden" id="btn-prev">이전</button>
-  <button class="btn-next" id="btn-next">시작하기</button>
-</div>
-
-<!-- 로딩 오버레이 -->
-<div class="loading" id="loading">
-  <div style="text-align:center;">
-    <div class="spinner"></div>
-    <p style="margin-top:16px; color:#475569;">결과 전송 중...</p>
-  </div>
-</div>
-
-<script>
-//============================================================
-// 설정 — Google Apps Script 배포 후 받은 웹앱 URL을 여기에 입력
-//============================================================
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyXlkl6IAw4NTYQ3A5ZVu4LOIM1esm8Mer15PAIoM53GtERaUutundXXjnN1Tt7Y_0b/exec";
-
-//============================================================
-// 데이터 (원본 varlist.py 그대로)
-//============================================================
-const top_factors = [
-  "Workload", "Equipment/HSI", "Procedure/Guideline", "Experience/Training",
-  "Communication", "Environment", "Work Process", "Complexity", "Fitness for Duty"
-];
-
-const factors = {
-  "top": top_factors,
-  "Workload": [
-    "근무시간", "작업시간", "수면시간", "작업 허용시간", "교대 근무시간", "교대 근무 변경 주기"
-  ],
-  "Equipment/HSI": [
-    "장비 가용성(접근성)", "작업도구의 적절성", "컴퓨터 지원 시스템 적절성",
-    "장비의 사용성", "장비 사용 매뉴얼의 질", "타 기기와 연계성", "유지보수의 적절성"
-  ],
-  "Procedure/Guideline": [
-    "절차의 유무(가용성)", "절차의 복잡성", "절차의 명료성(구체성)",
-    "절차의 적절성(완전성 포함)", "절차의 일관성", "절차의 추적성"
-  ],
-  "Experience/Training": [
-    "교육/훈련프로그램 적절성", "교육 주기(빈도)", "상황에 대한 경험 빈도",
-    "직무능력 평가 빈도", "시스템 지식(원리적 지식)의 숙련도",
-    "절차적 지식의 숙련도", "장비 사용 지식의 숙련도"
-  ],
-  "Communication": [
-    "의사소통 메세지의 길이", "의사소통 장비/기기 적절성", "의사소통 전문용어 숙지 필요성",
-    "의사소통 프로토콜 구체성", "의사소통자간 상황인식 공유 정도", "팀/조직 의사소통 자율성"
-  ],
-  "Environment": [
-    "풍속", "비", "실외습도", "실외온도", "낙뢰", "안개", "황사",
-    "작업공간 크기", "마찰계수", "실내온도", "실내습도", "통풍",
-    "소음", "업무공간의 가시성"
-  ],
-  "Work Process": [
-    "작업 관리 및 감독 적절성", "작업계획 적절성", "작업절차 및 규정",
-    "역할 분담 명료화", "작업자간 협업 정도"
-  ],
-  "Complexity": [
-    "의사결정 목표의 명확성", "의사결정 대안의 수", "의사결정 판단의 수",
-    "(동시에 처리해야 하는) 의사결정 수", "추론이 필요한 정보의 양", "정보의 불확실성"
-  ],
-  "Fitness for Duty": [
-    "피로", "음주", "약물"
-  ]
-};
-
-// 페이지 순서: 9개 PSF 그룹의 sub-PSF 비교만 진행
-// (상위 PSF 간 비교는 사용 안 함)
-const PAGES = [...top_factors];
-
-// 그룹명 한글 매핑 (카드별 안내문에서 사용)
-const groupNameKo = {
-  "Workload": "작업부하",
-  "Equipment/HSI": "장비 및 기기",
-  "Procedure/Guideline": "절차/지침",
-  "Experience/Training": "경험/훈련",
-  "Communication": "의사소통",
-  "Environment": "환경",
-  "Work Process": "작업 프로세스",
-  "Complexity": "복잡성",
-  "Fitness for Duty": "직무적합성"
-};
-
-//============================================================
-// 핵심 계산 로직 (원본 func_varlist.py 1:1 이식)
-//============================================================
-
-// val (1~17) → wval (가중치)
-// 1~8 = 왼쪽 우세 (9~2), 9 = 동등 (1), 10~17 = 오른쪽 우세 (1/2 ~ 1/9)
-function weighting(val) {
-  const map = {
-    1: 9, 2: 8, 3: 7, 4: 6, 5: 5, 6: 4, 7: 3, 8: 2, 9: 1,
-    10: 1/2, 11: 1/3, 12: 1/4, 13: 1/5, 14: 1/6, 15: 1/7, 16: 1/8, 17: 1/9
-  };
-  return map[val] ?? 1;
-}
-
-// n*(n-1)/2 페어 인덱스 리스트 (원본 making 함수)
-function makePairs(level) {
-  const pairs = [];
-  for (let i = 0; i < level.length; i++) {
-    for (let j = 0; j < level.length; j++) {
-      if (i >= j) continue;
-      pairs.push([i, j, level[i], level[j]]);
-    }
-  }
-  return pairs;
-}
-
-// n개 인자에 대한 Random Index (원본 get_randin 함수)
-function getRI(n) {
-  const RI_TABLE = {
-    2: 1e-5, 3: 0.58, 4: 0.9, 5: 1.12, 6: 1.24, 7: 1.32, 8: 1.41,
-    9: 1.45, 10: 1.49, 11: 1.51, 12: 1.48, 13: 1.56, 14: 1.57, 15: 1.59
-  };
-  return RI_TABLE[n] ?? 1.6;
-}
-
-// 매트릭스 초기화: n×n, 모두 1
-function initMatrix(n) {
-  return Array.from({length: n}, () => Array(n).fill(1));
-}
-
-// pairAnswers를 받아 매트릭스 채우기 (원본 update 함수의 매트릭스 채우기 부분)
-// pairAnswers: [{i, j, val}] 형태
-function fillMatrix(level, pairAnswers) {
-  const n = level.length;
-  const m = initMatrix(n);
-  for (const ans of pairAnswers) {
-    const wval = weighting(ans.val);
-    m[ans.i][ans.j] = wval;
-    m[ans.j][ans.i] = 1 / wval;
-  }
-  return m;
-}
-
-// 정통 AHP 산술평균법 (Normalized Column Method)
-// 1) 각 열을 그 열의 합으로 나눠 정규화
-// 2) 각 행의 평균을 가중치로 사용
-// (원본의 "행 합/전체 합" 방식에서 변경)
-function eigenvector(matrix) {
-  const n = matrix.length;
-  // 1) 열 합
-  const colSums = [];
-  for (let j = 0; j < n; j++) {
-    let s = 0;
-    for (let i = 0; i < n; i++) s += matrix[i][j];
-    colSums.push(s);
-  }
-  // 2) 정규화 후 행 평균
-  const eigen = [];
-  for (let i = 0; i < n; i++) {
-    let rowSum = 0;
-    for (let j = 0; j < n; j++) rowSum += matrix[i][j] / colSums[j];
-    eigen.push(rowSum / n);
-  }
-  return eigen;  // 가중치 합 = 1.0
-}
-
-// 일관성 (원본 consistency 함수)
-function consistency(matrix, eigen) {
-  const n = matrix.length;
-  const ymatrix = [];
-  for (let i = 0; i < n; i++) {
-    let s = 0;
-    for (let j = 0; j < n; j++) s += matrix[i][j] * eigen[j];
-    ymatrix.push(s);
-  }
-  const lambdaa = ymatrix.map((y, i) => y / eigen[i]);
-  const lambdamax = lambdaa.reduce((a, b) => a + b, 0) / n;
-  const RI = getRI(n);
-  const CI = (lambdamax - n) / (n - 1);
-  const CR = CI / RI;
-  return { lambdamax, CI, CR, RI };
-}
-
-// 일관성 판정 (원본 consistency_check 함수)
-function consistencyCheck(n, CR) {
-  if (n < 4) return "Not Applicable";
-  return CR < 0.1 ? "Acceptable" : "Not Acceptable";
-}
-
-//============================================================
-// 상태 관리
-//============================================================
-const state = {
-  currentScreen: "intro",  // intro / eval / done
-  currentPageIdx: 0,        // 0~8 = 9개 PSF 그룹의 sub-PSF 비교 페이지
-  profile: { name: "", affiliation: "", position: "" },
-  // answers[pageKey] = [{i, j, val}, ...]
-  answers: {}
-};
-
-// 각 페이지 답안 초기화
-PAGES.forEach(key => { state.answers[key] = []; });
-
-//============================================================
-// 화면 전환 & 렌더링
-//============================================================
-const $intro = document.getElementById("screen-intro");
-const $eval = document.getElementById("screen-eval");
-const $done = document.getElementById("screen-done");
-const $btnPrev = document.getElementById("btn-prev");
-const $btnNext = document.getElementById("btn-next");
-const $progressText = document.getElementById("progress-text");
-const $progressFill = document.getElementById("progress-fill");
-const $loading = document.getElementById("loading");
-
-function updateProgress() {
-  if (state.currentScreen === "intro") {
-    $progressText.textContent = "시작 화면";
-    $progressFill.style.width = "0%";
-  } else if (state.currentScreen === "eval") {
-    const total = PAGES.length;
-    const cur = state.currentPageIdx + 1;
-    $progressText.textContent = `페이지 ${cur} / ${total}`;
-    $progressFill.style.width = `${(cur / total) * 100}%`;
-  } else {
-    $progressText.textContent = "완료";
-    $progressFill.style.width = "100%";
-  }
-}
-
-function renderEvalPage() {
-  const pageKey = PAGES[state.currentPageIdx];
-  const level = factors[pageKey];
-  const pairs = makePairs(level);
-
-  document.getElementById("eval-title").textContent = `${pageKey} 내 sub-PSF 비교`;
-  document.getElementById("eval-subtitle").textContent =
-    `${level.length}개 항목, ${pairs.length}개 쌍대비교`;
-
-  const $pairs = document.getElementById("eval-pairs");
-  $pairs.innerHTML = "";
-
-  pairs.forEach((p, idx) => {
-    const [i, j, labelL, labelR] = p;
-    const existing = state.answers[pageKey].find(a => a.i === i && a.j === j);
-    const selectedVal = existing ? existing.val : null;
-
-    const card = document.createElement("div");
-    card.className = "compare-card";
-    const groupKo = groupNameKo[pageKey] || pageKey;
-    card.innerHTML = `
-      <div class="pair-header">
-        <span class="pair-question">
-          <span class="ctx">${groupKo}</span> 관점에서
-          '<span class="item">${labelL}</span>'과
-          '<span class="item">${labelR}</span>' 중
-          어떤 것이 더 중요한가요?
-        </span>
-        <span class="pair-num">${idx + 1} / ${pairs.length}</span>
-      </div>
-      <div class="pair-labels">
-        <div class="lhs">${labelL}</div>
-        <div class="rhs">${labelR}</div>
-      </div>
-      <div class="scale-container" data-i="${i}" data-j="${j}">
-        ${[1,2,3,4,5,6,7,8].map(v => `<button class="scale-btn lvl-l${9-v} ${selectedVal===v?'selected':''}" data-val="${v}">${10-v}</button>`).join("")}
-        <button class="scale-btn equal ${selectedVal===9?'selected':''}" data-val="9">=</button>
-        ${[10,11,12,13,14,15,16,17].map(v => `<button class="scale-btn lvl-r${v-9} ${selectedVal===v?'selected':''}" data-val="${v}">${v-8}</button>`).join("")}
-      </div>
-      <div class="scale-legend">
-        <span>← ${labelL} 우세</span>
-        <span>동등</span>
-        <span>${labelR} 우세 →</span>
-      </div>
-    `;
-    $pairs.appendChild(card);
-  });
-
-  // 클릭 핸들러
-  $pairs.querySelectorAll(".scale-container").forEach(sc => {
-    const i = parseInt(sc.dataset.i);
-    const j = parseInt(sc.dataset.j);
-    sc.querySelectorAll(".scale-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const val = parseInt(btn.dataset.val);
-        // 같은 행의 다른 버튼 해제
-        sc.querySelectorAll(".scale-btn").forEach(b => b.classList.remove("selected"));
-        btn.classList.add("selected");
-        // 답 저장
-        const existing = state.answers[pageKey].find(a => a.i === i && a.j === j);
-        if (existing) existing.val = val;
-        else state.answers[pageKey].push({ i, j, val });
-        updateNextButton();
-      });
-    });
-  });
-
-  // 스크롤 맨 위로
-  window.scrollTo({ top: 0, behavior: "instant" });
-  updateNextButton();
-}
-
-function isPageComplete() {
-  const pageKey = PAGES[state.currentPageIdx];
-  const level = factors[pageKey];
-  const required = level.length * (level.length - 1) / 2;
-  return state.answers[pageKey].length >= required;
-}
-
-function updateNextButton() {
-  if (state.currentScreen !== "eval") return;
-  const complete = isPageComplete();
-  const isLast = state.currentPageIdx === PAGES.length - 1;
-  $btnNext.disabled = false;  // 항상 클릭 가능 — 미완료 시 누락 문항으로 이동
-  $btnNext.textContent = isLast ? "제출하기" : "다음";
-  // 미완료면 .incomplete 클래스로 시각적 회색 표시
-  $btnNext.className = (isLast ? "btn-submit" : "btn-next") + (complete ? "" : " incomplete");
-}
-
-// 첫 번째 미응답 카드로 스크롤 + 강조 효과
-function scrollToFirstUnanswered() {
-  const $pairs = document.getElementById("eval-pairs");
-  const containers = $pairs.querySelectorAll(".scale-container");
-  for (const sc of containers) {
-    if (!sc.querySelector(".scale-btn.selected")) {
-      const card = sc.closest(".compare-card");
-      card.scrollIntoView({ behavior: "smooth", block: "center" });
-      // 강조 클래스 제거 후 다시 추가하여 애니메이션 재실행
-      card.classList.remove("highlight-missing");
-      void card.offsetWidth;  // reflow 강제 (애니메이션 재시작 트릭)
-      card.classList.add("highlight-missing");
-      setTimeout(() => card.classList.remove("highlight-missing"), 2000);
-      return true;
-    }
-  }
-  return false;
-}
-
-function showScreen(name) {
-  state.currentScreen = name;
-  $intro.classList.toggle("hidden", name !== "intro");
-  $eval.classList.toggle("hidden", name !== "eval");
-  $done.classList.toggle("hidden", name !== "done");
-  document.getElementById("nav-bar").classList.toggle("hidden", name === "done");
-
-  if (name === "intro") {
-    $btnPrev.classList.add("hidden");
-    $btnNext.textContent = "시작하기";
-    $btnNext.className = "btn-next";
-    $btnNext.disabled = false;
-  } else if (name === "eval") {
-    $btnPrev.classList.toggle("hidden", state.currentPageIdx === 0);
-    renderEvalPage();
-  }
-  updateProgress();
-}
-
-//============================================================
-// 결과 계산 & 전송
-//============================================================
-// 각 PSF 그룹 내에서 sub-PSF 간 정통 AHP 산술평균법으로 가중치 계산.
-// 상위 PSF 간 비교는 사용하지 않으므로, sub-PSF 가중치는 해당 그룹 내에서만 합이 1.
-function calculateAll() {
-  const results = {};
-  for (const pageKey of PAGES) {
-    const level = factors[pageKey];
-    const matrix = fillMatrix(level, state.answers[pageKey]);
-    const eigen = eigenvector(matrix);
-    const cons = consistency(matrix, eigen);
-    const check = consistencyCheck(level.length, cons.CR);
-    results[pageKey] = { level, matrix, eigen, ...cons, check };
-  }
-  return results;
-}
-
-function buildResultText(results) {
-  const p = state.profile;
-  let txt = "";
-  txt += "■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■\n";
-  txt += `name: ${p.name}\n`;
-  txt += `affiliation: ${p.affiliation}\n`;
-  txt += `position: ${p.position}\n`;
-  txt += `timestamp: ${new Date().toISOString()}\n`;
-  txt += `방식: 정통 AHP 산술평균법 (Normalized Column Method)\n`;
-  txt += `상위 PSF 간 비교는 수행하지 않음. 각 그룹 내 sub-PSF 가중치 합 = 1\n\n`;
-
-  // 1) Sub-PSF별 가중치 요약 (그룹별)
-  txt += "■■■ Sub-PSF 가중치 요약 ■■■\n";
-  for (const cat of top_factors) {
-    const r = results[cat];
-    txt += `\n[${cat}] (n=${r.level.length})\n`;
-    r.level.forEach((f, i) => {
-      txt += `  ${f}: ${r.eigen[i].toFixed(6)}\n`;
-    });
-    txt += `  → CI: ${Math.round(r.CI * 100000) / 100000}, `;
-    txt += `CR: ${Math.round(r.CR * 100000) / 100000} (${r.check})\n`;
-  }
-
-  // 2) 상세 (행렬, eigen vector)
-  txt += "\n■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■\n";
-  txt += "■ 상세 데이터\n";
-  for (const pageKey of PAGES) {
-    const r = results[pageKey];
-    txt += `\n■ group: ${pageKey}\n`;
-    txt += `■ factors: ${r.level.join(", ")}\n`;
-    txt += "■ compare matrix\n";
-    for (const row of r.matrix) {
-      txt += "[" + row.map(v => Number(v).toString()).join(", ") + "]\n";
-    }
-    txt += `■ eigen vector (sub-PSF 가중치)\n [${r.eigen.map(v => Number(v).toString()).join(", ")}]\n`;
-    txt += `■ CI: ${Math.round(r.CI * 100000) / 100000}\n`;
-    txt += `■ CR: ${Math.round(r.CR * 100000) / 100000}\n`;
-    txt += `■ Consistency: ${r.check}\n`;
-    txt += "==========================================\n";
-  }
-
-  return txt;
-}
-
-async function submit() {
-  $loading.classList.add("active");
-  try {
-    const results = calculateAll();
-    const resultText = buildResultText(results);
-
-    // sub-PSF별 가중치를 flat 객체로: { "근무시간": 0.18, "작업시간": 0.12, ... }
-    const subWeights = {};
-    const groupCR = {};
-    for (const cat of top_factors) {
-      const r = results[cat];
-      r.level.forEach((f, i) => {
-        subWeights[f] = r.eigen[i];
-      });
-      groupCR[cat] = {
-        CI: r.CI,
-        CR: r.CR,
-        check: r.check
-      };
-    }
-
-    if (APPS_SCRIPT_URL.startsWith("PASTE_")) {
-      console.log("=== 결과 TXT (URL 미설정) ===");
-      console.log(resultText);
-      console.log("=== subWeights ===");
-      console.log(subWeights);
-      alert("Apps Script URL이 설정되지 않았습니다.\n관리자에게 문의하세요.\n(콘솔에 결과 출력됨)");
-      $loading.classList.remove("active");
-      return;
-    }
-
-    const payload = {
-      profile: state.profile,
-      resultText: resultText,
-      summary: {
-        timestamp: new Date().toISOString(),
-        subWeights: subWeights,
-        groupCR: groupCR
-      }
-    };
-
-    await fetch(APPS_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload)
-    });
-
-    showScreen("done");
-  } catch (e) {
-    alert("전송 중 오류가 발생했습니다: " + e.message + "\n다시 시도해주세요.");
-    console.error(e);
-  } finally {
-    $loading.classList.remove("active");
-  }
-}
-
-//============================================================
-// 네비게이션 이벤트
-//============================================================
-$btnNext.addEventListener("click", () => {
-  if (state.currentScreen === "intro") {
-    const name = document.getElementById("name").value.trim();
-    const aff = document.getElementById("affiliation").value.trim();
-    const pos = document.getElementById("position").value.trim();
-    if (!name || !aff || !pos) {
-      alert("이름, 소속, 직책/직무를 모두 입력해주세요.");
-      return;
-    }
-    state.profile = { name, affiliation: aff, position: pos };
-    state.currentPageIdx = 0;
-    showScreen("eval");
-  } else if (state.currentScreen === "eval") {
-    if (!isPageComplete()) {
-      // 미응답 항목이 있으면 그 위치로 스크롤·강조
-      scrollToFirstUnanswered();
-      return;
-    }
-    if (state.currentPageIdx === PAGES.length - 1) {
-      if (!confirm("평가를 제출하시겠습니까?\n제출 후에는 수정할 수 없습니다.")) return;
-      submit();
-    } else {
-      state.currentPageIdx += 1;
-      showScreen("eval");
-    }
-  }
-});
-
-$btnPrev.addEventListener("click", () => {
-  if (state.currentScreen === "eval" && state.currentPageIdx > 0) {
-    state.currentPageIdx -= 1;
-    showScreen("eval");
-  }
-});
-
-// 초기 화면
-showScreen("intro");
-</script>
-</body>
-</html>
+# AHP 평가 웹 버전 - 세팅 가이드 (9PSF / Sub-PSF 전용)
+
+> **이 버전의 특징:**
+> - 9개 PSF 그룹: Workload, Equipment/HSI, Procedure/Guideline, Experience/Training,
+>   Communication, Environment, Work Process, Complexity, **Fitness for Duty**
+> - 각 PSF 그룹 **내부의 sub-PSF 간 비교만** 진행 (상위 PSF 간 비교 안 함)
+> - 가중치 산정: **정통 AHP 산술평균법** (Normalized Column Method)
+>   - 원본 exe의 "행 합/전체 합" 방식과 다름 — 표준 교과서 방식으로 변경
+>   - 각 그룹 내 가중치 합 = 1.0
+> - 총 9개 페이지, 약 207개 쌍대비교, 약 25~40분 소요
+> - 시트 컬럼: 메타데이터 4개 + sub-PSF 60개 = **총 64개**
+> - 결과 컬럼명 형식: `Workload/근무시간`, `Equipment/HSI/장비 가용성(접근성)` 등 (그룹/Sub-PSF)
+
+이 가이드를 그대로 따라하시면 됩니다. 약 **10분** 소요됩니다.
+
+---
+
+## 사전 준비
+
+- Google 계정 (Gmail)
+- 이 폴더의 두 파일:
+  - `index.html` (평가용 웹페이지)
+  - `apps_script_code.gs` (서버 코드)
+
+---
+
+## STEP 1. Google Sheets 만들기
+
+1. https://sheets.google.com 접속
+2. 우상단 `+` 또는 "내용 없음" 시트 새로 만들기
+3. 시트 이름을 **`AHP 평가 결과`** 등 알아보기 쉽게 변경
+4. 이 시트의 탭에 `응답`이라는 이름이 자동 생성됩니다 (스크립트가 자동 처리)
+
+---
+
+## STEP 2. Apps Script 코드 붙여넣기
+
+1. Sheets 메뉴에서 **확장 프로그램(Extensions) > Apps Script** 클릭
+2. 새 창이 열리면 기본 `function myFunction() { }` 코드 **전체 삭제**
+3. `apps_script_code.gs` 파일의 **모든 내용을 복사해서 붙여넣기**
+4. 상단 입력란에서 프로젝트 이름을 **`AHP 결과 수신`** 등으로 변경
+5. **`💾 저장` (Ctrl+S)** 클릭
+
+### 설정 확인 (가장 위 상수 3줄)
+
+```javascript
+const RECIPIENT_EMAIL = "jerry@bees.pro";    // ← 결과 받을 메일
+const DRIVE_FOLDER_NAME = "AHP_평가결과";    // ← Drive 폴더명 (자동 생성됨)
+const SHEET_NAME = "응답";                   // ← 시트 탭 이름
+```
+
+`RECIPIENT_EMAIL`이 본인이 받을 메일 주소가 맞는지 확인하세요. 다르면 수정 후 저장.
+
+---
+
+## STEP 3. 권한 승인 (한 번만)
+
+1. 상단 함수 선택 메뉴에서 **`testRun`** 선택
+2. **`▶ 실행`** 버튼 클릭
+3. **"승인 필요" 팝업** 뜸 → "권한 검토" 클릭
+4. 본인 Google 계정 선택
+5. **"이 앱은 Google에서 확인하지 않았습니다"** 경고 뜸
+   → 좌하단 **"고급"** 클릭
+   → **"AHP 결과 수신(안전하지 않음)(으)로 이동"** 클릭
+   → 권한 목록(Drive, Gmail, Sheets) 확인 후 **"허용"**
+6. 실행 완료 후, 다음을 확인:
+   - 본인 Gmail에 **테스트 메일** 도착했는지 확인
+   - Google Drive에 **`AHP_평가결과`** 폴더가 생기고 안에 테스트 TXT 파일이 있는지 확인
+   - 현재 Sheets에 **`응답`** 탭이 생기고 한 행이 추가됐는지 확인
+
+세 가지 모두 확인되면 서버 세팅 완료입니다.
+
+---
+
+## STEP 4. 웹앱으로 배포
+
+1. Apps Script 우상단 **`배포(Deploy)` > `새 배포(New deployment)`** 클릭
+2. 좌상단 톱니바퀴 아이콘 → **`웹 앱(Web app)`** 선택
+3. 다음 설정 입력:
+   - **설명**: `AHP Evaluator v1` (자유)
+   - **다음 사용자로 실행(Execute as)**: **`본인 (your email)`**
+   - **액세스 권한(Who has access)**: **`모든 사용자(Anyone)`** ← 매우 중요
+4. **`배포(Deploy)`** 클릭
+5. 권한 추가 승인 팝업이 뜨면 STEP 3과 동일하게 진행
+6. 배포 완료 후 표시되는 **웹앱 URL**을 복사
+   - 형식: `https://script.google.com/macros/s/AKfycb..../exec`
+
+---
+
+## STEP 5. HTML 파일에 URL 입력
+
+1. `index.html` 파일을 메모장 또는 VSCode로 열기
+2. 다음 줄을 찾기 (29번째 줄 근처):
+
+   ```javascript
+   const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE";
+   ```
+
+3. `PASTE_YOUR_APPS_SCRIPT_WEBAPP_URL_HERE` 부분을 STEP 4에서 복사한 URL로 교체:
+
+   ```javascript
+   const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycb..../exec";
+   ```
+
+4. 저장 (Ctrl+S)
+
+---
+
+## STEP 6. 호스팅 (핸드폰에서 접속 가능하게)
+
+세 가지 방법 중 선택:
+
+### 방법 A. GitHub Pages (무료, 권장)
+
+1. https://github.com 가입/로그인
+2. `New repository` → 이름 `ahp-evaluator` 등, **Public** 선택
+3. `Add file > Upload files` → `index.html` 업로드
+4. `Settings > Pages` → Source를 `main` 브랜치 / `/ (root)` 선택, Save
+5. 1~2분 후 생성된 URL을 핸드폰에서 접속
+   - 형식: `https://본인아이디.github.io/ahp-evaluator/`
+
+### 방법 B. Netlify Drop (무료, 가장 간단)
+
+1. https://app.netlify.com/drop 접속
+2. `index.html` 파일을 페이지로 **드래그 앤 드롭**
+3. 즉시 URL 생성됨 (예: `https://random-name.netlify.app`)
+4. 핸드폰에서 그 URL로 접속
+
+### 방법 C. 로컬에서만 테스트
+
+본인 컴퓨터에서만 테스트하려면:
+
+```bash
+# 명령 프롬프트(cmd)에서
+cd "C:\Users\gkdls\Desktop\Gyeong\70_claude_rail\철도HRA 개발\AHP_evaluator_웹버전"
+python -m http.server 8000
+```
+
+브라우저에서 `http://localhost:8000` 접속.
+
+핸드폰에서 접속하려면 같은 WiFi에서 `http://컴퓨터내부IP:8000` 입력. 다만 외부망에서는 안 됩니다.
+
+---
+
+## 사용 흐름
+
+평가자가 핸드폰으로 URL 접속 → 이름·소속·직책 입력 → 9페이지의 sub-PSF 쌍대비교 (총 207개) →
+**제출** 버튼 누르면:
+
+1. ✅ Google Sheets에 한 행 자동 추가 (sub-PSF 60개 컬럼)
+2. ✅ jerry@bees.pro로 메일 자동 발송 (TXT 첨부, `[9PSF/SubPSF]` 머리표)
+3. ✅ Google Drive `AHP_평가결과_9PSF` 폴더에 TXT 파일 저장
+4. ✅ 평가자에게는 "완료" 메시지만 표시 (결과 내용 비공개)
+
+---
+
+## 문제 해결
+
+### "결과가 안 와요"
+
+- Apps Script 편집기에서 `testRun` 함수를 다시 실행 → 메일 도착하는지 확인
+- 안 오면 권한이 잘못 부여된 것. STEP 4 배포를 새로 다시 진행
+- 스팸함도 확인
+
+### "URL을 변경했어요"
+
+- HTML의 `APPS_SCRIPT_URL`도 새 URL로 업데이트 필요
+- 호스팅된 파일도 다시 업로드
+
+### "코드 수정 후 변화가 없어요"
+
+- Apps Script는 수정 후 **`배포 관리(Manage deployments)` > 연필 아이콘 > Version: New version`** 으로 새 배포 필요
+- 새 배포할 때마다 URL은 동일하게 유지됨 (같은 배포 슬롯 업데이트)
+
+### "Environment 카테고리(14개)가 너무 길어요"
+
+- 원본 알고리즘 그대로라 91개 비교 필요. 줄이려면 인자 수를 줄여야 함
+- `index.html` 내 `factors["Environment"]` 배열에서 항목을 삭제하면 그만큼 비교 횟수가 줄어듭니다
+
+---
+
+## 직접 검증해야 할 부분 (사용 전)
+
+1. **testRun 함수 실행**으로 메일·시트·Drive 3곳 모두 정상 작동 확인
+2. **시트 컬럼 수가 64개**(메타 4 + sub-PSF 60) 인지 확인
+3. **시트 첫 행 헤더**가 `Workload/근무시간`, `Equipment/HSI/장비 가용성(접근성)` 형태인지 확인
+4. **각 그룹별 가중치 합이 1.0인지** 시트에서 SUM 함수로 확인 (예: E:J열 합 = 1)
+5. **본인이 한 번 끝까지 응답**해보고, 받은 TXT의 sub-PSF 가중치가 시트와 일치하는지 확인
+6. **이전에 만든 시트가 있다면** 헤더 구조가 다릅니다 — 기존 `응답` 탭을 삭제 후 `testRun` 재실행 권장
+
+## 주의: 가중치 계산 방식이 원본 exe와 다릅니다
+
+- 원본 exe: `행 합 / 전체 합` (단순 방식)
+- 이 웹 버전: `정통 AHP 산술평균법` (정규화 열 평균)
+- 같은 응답이라도 두 방식의 가중치 값은 **소수점 단위로 다릅니다** (대소 순위는 보통 같음)
+- 과거 원본 exe 결과와 직접 수치 비교 시 차이가 발생함을 인지하세요
+
+---
+
+## 파일 구조
+
+```
+AHP_evaluator_웹버전/
+├── index.html              ← 평가용 웹페이지 (호스팅)
+├── apps_script_code.gs     ← Apps Script 붙여넣기용 코드
+└── 세팅가이드.md            ← 이 파일
+```
